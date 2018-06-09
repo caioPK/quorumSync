@@ -126,7 +126,6 @@ public class ServidorSocket extends Thread {
             } else {
                 //mostra o nome do cliente conectado ao servidor
                 System.out.println(this.nomeCliente + " : Conectado ao Servidor!");
-
             }
 
           
@@ -147,9 +146,10 @@ public class ServidorSocket extends Thread {
 
 //          FICA RECEBENDO O UPDATE DOS USUARIOS
             while (msg != null && !(msg[0].trim().equals(""))) {
-                msg = entrada.readLine().split(":");
+                
                 MAP_TEMPO.put(this.nomeCliente, Integer.parseInt(msg[0]));
                 System.out.println(this.nomeCliente + " UPDATE NUMBER "+ msg[0]+ " tempo "+ this.tempo);
+                msg = entrada.readLine().split(":");
                 
             }
             
@@ -171,26 +171,12 @@ public class ServidorSocket extends Thread {
    
     public void send(PrintStream saida, String acao, String[] msg) {
         out:
-//        ENVIANDO O TEMPO PARA TODO MUNDO
+//        ENVIANDO O TEMPO ATUAL PARA TODO MUNDO
         for (Map.Entry<String, PrintStream> cliente : MAP_CLIENTES.entrySet()) {
             PrintStream chat = cliente.getValue();
             chat.println(this.tempo);   
         }
     }
 
-    public void sendListToAll(String nome) {
-        for (Map.Entry<String, PrintStream> cliente : MAP_CLIENTES.entrySet()) {
-            if (!cliente.getKey().equalsIgnoreCase(nome)) {
-                String aux = "";
-                for (String s : LISTA_DE_NOMES) {
-                    if (!s.equalsIgnoreCase(cliente.getKey())) {
-                        aux = aux + s + " ";
-                    }
-                }
-                PrintStream chat = cliente.getValue();
-                chat.println("[" + aux + "]");
-                chat.flush();
-            }
-        }
-    }
+    
 }

@@ -1,75 +1,112 @@
+import java.awt.*;
+import javax.swing.*;
+import java.awt.event.*;
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import static javax.swing.JFrame.EXIT_ON_CLOSE;
 
+public class ClienteSocket extends JFrame implements Runnable, ActionListener {
+  static PrintStream os = null;
+  JTextField textField;
+  static JTextArea textArea;
+  static int tempo=0;
+  
+  
+//---------------------CONTRUTOR DA CLASSE
+  ClienteSocket() {
+    super("Cliente quorum");
+    add(textField = new JTextField(20), BorderLayout.NORTH);
+    add(textArea = new JTextArea(5, 20), BorderLayout.CENTER);
+    textField.addActionListener(this);
+    textArea.setEditable(false);
+    setDefaultCloseOperation(EXIT_ON_CLOSE);
+    pack();
+    setVisible(true);
+  }
 
-package chat;
+  
+//  ------------------THREAD LISTENER DO TEXTO
+//  
+  public void actionPerformed(ActionEvent e) {
+    os.println(textField.getText());
+    textField.setText("");
+  }
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.net.Socket;
-
-public class ClienteSocket extends Thread {
-    // parte que controla a recepcao de mensagens do cliente
-    private Socket conexao;
-    // construtor que recebe o socket do cliente
-    public ClienteSocket(Socket socket) {
-        this.conexao = socket;
-    }
-    public static void main(String args[])
-    {
-        try {
-            //Instancia do atributo conexao do tipo Socket, conecta a IP do Servidor, Porta
-            Socket socket = new Socket("127.0.0.1", 5555);
-            //Instancia do atributo saida, obtem os objetos que permitem controlar o fluxo de comunicacao
-            PrintStream saida = new PrintStream(socket.getOutputStream());
-            BufferedReader teclado = new BufferedReader(new InputStreamReader(System.in));
-            System.out.print("Digite seu nome: ");
-            String meuNome = teclado.readLine();
-            //envia o nome digitado para o servidor
-            saida.println(meuNome.toUpperCase());
-            //instancia a thread para ip e porta conectados e depois inicia ela
-            Thread thread = new ClienteSocket(socket);
-            thread.start();
-            //Cria a variavel msg responsavel por enviar a mensagem para o servidor
-            String msg;
-            while (true)
-            {
-                // cria linha para digitacao da mensagem e a armazena na variavel msg
-                System.out.print("Mensagem > ");
-                msg = teclado.readLine();
-                // envia a mensagem para o servidor
-                saida.println(msg);
+//------------------------ FUNÇÃO TIMER
+  public static void startTimer(){
+//      COMO FAZER ELA DORMIR ENQUANTO TIMER FOR 0?????????????????????
+      while(true){
+        if(tempo !=0){
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(ClienteSocket.class.getName()).log(Level.SEVERE, null, ex);
             }
-        } catch (IOException e) {
-            System.out.println("Falha na Conexao... .. ." + " IOException: " + e);
+            tempo = (tempo -1);
+            textArea.setText(Integer.toString((tempo)));
+            enviar(tempo);
+        }else{
+            textArea.setText("FIM DO TEMPO");
         }
     }
-    // execuï¿½ï¿½o da thread
-    public void run()
-    {
-        try {
-            //recebe mensagens de outro cliente atraves do servidor
-            BufferedReader entrada = new BufferedReader(new InputStreamReader(this.conexao.getInputStream()));
-            //cria variavel de mensagem
-            String msg;
-            while (true)
-            {
-                // pega o que o servidor enviou
-                msg = entrada.readLine();
-                //se a mensagem contiver dados, passa pelo if, caso contrario cai no break e encerra a conexao
-                if (msg == null) {
-                    System.out.println("Conexao encerrada!");
-                    System.exit(0);
-                }
-                System.out.println();
-                //imprime a mensagem recebida
-                System.out.println(msg);
-                //cria uma linha visual para resposta
-                System.out.print("Responder > ");
-            }
-        } catch (IOException e) {
-            // caso ocorra alguma excecao de E/S, mostra qual foi.
-            System.out.println("Ocorreu uma Falha... .. ." + " IOException: " + e);
-        }
+  }
+  
+//  ----------------------FUNÇÃO PARA SETAR O TEMPO
+  public void setTime(String novoT){
+      tempo = Integer.parseInt(novoT);
+      enviar(tempo);
+  }
+  
+//  ----------------------FUNÇÃO PARA ENVIAR MSG
+  public static void  enviar(int msg){
+      os.println(msg);
+  }
+  
+//  ----------------------THREAD PRINCIPAL (TIMER)
+//  
+  public static void main(String[] args) {
+    new Thread(new ClienteSocket()).start();
+    startTimer();  
+  }
+
+  
+//  ----------------THREAD PARA ESCUTAR O SERVER
+//  
+  public void run() {
+    Socket socket = null;
+    Scanner is = null;
+
+    try {
+        
+      socket = new Socket("127.0.0.1", 5555);
+      os = new PrintStream(socket.getOutputStream(), true);
+      is = new Scanner(socket.getInputStream());
+      
+    } catch (UnknownHostException e) {
+      System.err.println("Don't know about host.");
+    } catch (IOException e) {
+      System.err.println("Couldn't get I/O for the connection to host");
     }
+
+    try {
+      String inputLine;
+      do {
+        inputLine = is.nextLine();
+        System.err.println("> "+inputLine );
+        setTime(inputLine);
+        
+      } while (!inputLine.equals(""));
+
+      os.close();
+      is.close();
+      socket.close();
+    } catch (UnknownHostException e) {
+      System.err.println("Trying to connect to unknown host: " + e);
+    } catch (IOException e) {
+      System.err.println("IOException:  " + e);
+    }
+  }
 }
